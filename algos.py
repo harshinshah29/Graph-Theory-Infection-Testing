@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 
+
 # binary spliting
 def binary_splitting_round(s):
     # s: np.array the infectious status & test status
@@ -98,20 +99,53 @@ def diag_splitting(s):
                 flag = 1
     return num_tests,stages
 
+
+
+
 def Qtesting1(s):
     '''
     s(np.array): binary string of infection status
     '''
-    num_tests = 0
-    stages = 0
-    ###################################################
-    '''your code here'''
+    import math
+    # Helper function to perform recursive calculations
+    def helper(s, stage=0):
+        total = len(s)
+        if total == 1:
+            return 1, stage  # Base case: no more tests needed, return current stage
+        if sum(s) == total:
+            return 1, stage
+        if sum(s) == 1 or sum(s) == total - 1:
+            return math.log2(total) + 1, stage
 
-    ###################################################
+        infected = sum(s)
+        m = max(infected, total - infected)
+        x = m / total
+        num_tests = 1
 
+        # Find the smallest i such that x <= (2^i - 1) / y
+        for i in range(1, int(math.log2(total)) + 1):
+            y = 2 ** i
+            if x >= (y - 1) / y:
+                continue
+            else:
+                # Split the array into y subgroups
+                subgroup_size = total // y
+                print(subgroup_size)
+                test_count = 0
+                max_stage = stage
+                # Recursively calculate the number of tests for each subgroup
+                for j in range(0, total, subgroup_size):
+                    subgroup_tests, subgroup_stage = helper(s[j:j + subgroup_size], stage + 1)
+                    test_count += subgroup_tests
+                    max_stage = max(max_stage, subgroup_stage)
+                return num_tests + test_count, max_stage
 
+        return num_tests, stage  # Return the total number of tests including this level and current stage
 
-    return num_tests,stages
+    # Start the recursion with stage 0
+    total_tests, max_stages = helper(s, 0)
+    return total_tests, max_stages
+    
 
 
 def Qtesting2(s):

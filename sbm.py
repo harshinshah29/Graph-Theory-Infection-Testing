@@ -13,7 +13,7 @@ def SBM(N,M,q0,q1):
     '''
     #################################################
     community_sizes = [N // M] * M
-    for i in range(N % M):  # Distribute remainder
+    for i in range(N % M):  
         community_sizes[i] += 1
 
     G = np.zeros((N, N), dtype=int)
