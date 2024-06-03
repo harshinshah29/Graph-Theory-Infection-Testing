@@ -112,13 +112,17 @@ def Qtesting1(s):
         total = len(s)
         if total == 1:
             return 1, stage  # Base case: no more tests needed, return current stage
-        if sum(s) == total:
+        if sum(s) == total or 0:
             return 1, stage
         if sum(s) == 1 or sum(s) == total - 1:
             return math.log2(total) + 1, stage
 
         infected = sum(s)
+        
         m = max(infected, total - infected)
+        if m/total < 3/256:
+            m = infected
+
         x = m / total
         num_tests = 1
 
@@ -130,14 +134,13 @@ def Qtesting1(s):
             else:
                 # Split the array into y subgroups
                 subgroup_size = total // y
-                print(subgroup_size)
                 test_count = 0
-                max_stage = stage
+                max_stage = 0
                 # Recursively calculate the number of tests for each subgroup
                 for j in range(0, total, subgroup_size):
                     subgroup_tests, subgroup_stage = helper(s[j:j + subgroup_size], stage + 1)
                     test_count += subgroup_tests
-                    max_stage = max(max_stage, subgroup_stage)
+                    max_stage += subgroup_stage
                 return num_tests + test_count, max_stage
 
         return num_tests, stage  # Return the total number of tests including this level and current stage
@@ -154,27 +157,140 @@ def Qtesting2(s):
     '''
     num_tests = 0
     stages = 0
-    ###################################################
-    '''your code here'''
+    import math
+    
+    def helper2(s, stage=0):
+        total = len(s)
+        if total == 1:
+            return 1, stage  # Base case: no more tests needed, return current stage
+        
+        if sum(s) == 0:
+            return 1, stage
+        if sum(s) == 1:
+            return math.log2(total) + 1, stage
+        
+        if sum(s) >= 8:
+            val = 5
+        elif sum(s) >= 4:
+            val = 4
+        elif sum(s) >= 2:
+            val = 3
 
-    ###################################################
+        if total > 16:
+            if val == 5:
+                m = total - 8
+            if val == 4:
+                m = total - 4
+            if val == 3:
+                m = total - 3
+            x = m / total
+            num_tests = 1
+
+            # Find the smallest i such that x <= (2^i - 1) / y
+            for i in range(1, int(math.log2(total)) + 1):
+                y = 2 ** i
+                if x >= (y - 1) / y:
+                    continue
+                else:
+                    # Split the array into y subgroups
+                    subgroup_size = total // y
+                    test_count = 0
+                    max_stage = 0
+                    # Recursively calculate the number of tests for each subgroup
+                    for j in range(0, total, subgroup_size):
+                        subgroup_tests, subgroup_stage = helper2(s[j:j + subgroup_size], stage + 1)
+                        test_count += subgroup_tests
+                        max_stage += subgroup_stage
+                    return num_tests + test_count, max_stage
 
 
 
-    return num_tests,stages
+        infected = sum(s)
+        m = max(infected, total - infected)
+        x = m / total
+        num_tests = 1
+
+        # Find the smallest i such that x <= (2^i - 1) / y
+        for i in range(1, int(math.log2(total)) + 1):
+            y = 2 ** i
+            if x >= (y - 1) / y:
+                continue
+            else:
+                # Split the array into y subgroups
+                subgroup_size = total // y
+                test_count = 0
+                max_stage = 0
+                # Recursively calculate the number of tests for each subgroup
+                for j in range(0, total, subgroup_size):
+                    subgroup_tests, subgroup_stage = helper2(s[j:j + subgroup_size], stage + 1)
+                    test_count += subgroup_tests
+                    max_stage += subgroup_stage
+                return num_tests + test_count, max_stage
+
+        return num_tests, stage  # Return the total number of tests including this level and current stage
+
+    # Start the recursion with stage 0
+    total_tests, max_stages = helper2(s, 0)
+    return total_tests, max_stages
 
 
 
 def Qtesting1_comm_aware(s,communities):
     '''
     s(np.array): binary string of infection status
-    communities(list): the community information
+    communities(list): the community sizes
     '''
     num_tests = 0
     stages = 0
     ###################################################
-    '''your code here'''
+    
+    community_indices = list(range(len(communities)))
 
+    def search_communities(indices):
+        nonlocal num_tests, stages
+        if not indices:
+            return []
+        elif len(indices) == 1:
+            # Directly test this single community if only one left
+            index = indices[0]
+            start = sum(communities[:index])
+            end = start + communities[index]
+            if np.any(s[start:end]):
+                num_tests += 1
+                return [(start, end)]
+            return []
+
+        mid = len(indices) // 2
+        left_indices = indices[:mid]
+        right_indices = indices[mid:]
+
+        # Test the pooled communities on left and right
+        left_start = sum(communities[:left_indices[0]])
+        left_end = left_start + sum(communities[left_indices[0]:left_indices[-1] + 1])
+        right_start = sum(communities[:right_indices[0]])
+        right_end = right_start + sum(communities[right_indices[0]:right_indices[-1] + 1])
+
+        infected_communities = []
+        if np.any(s[left_start:left_end]):
+            num_tests += 1
+            infected_communities += search_communities(left_indices)
+        if np.any(s[right_start:right_end]):
+            num_tests += 1
+            infected_communities += search_communities(right_indices)
+
+        return infected_communities
+
+    
+    # Start the recursive binary search
+    infected_communities = search_communities(community_indices)
+    
+    # Apply Qtesting1 to each detected infected community
+    for start, end in infected_communities:
+        community_s = s[start:end]
+        community_tests, community_stages = Qtesting1(community_s)
+        num_tests += community_tests
+        stages = max(stages, community_stages)
+    
     ###################################################
 
 
@@ -189,8 +305,52 @@ def Qtesting2_comm_aware(s,communities):
     num_tests = 0
     stages = 0
     ###################################################
-    '''your code here'''
+    community_indices = list(range(len(communities)))
 
+    def search_communities(indices):
+        nonlocal num_tests, stages
+        if not indices:
+            return []
+        elif len(indices) == 1:
+            # Directly test this single community if only one left
+            index = indices[0]
+            start = sum(communities[:index])
+            end = start + communities[index]
+            if np.any(s[start:end]):
+                num_tests += 1
+                return [(start, end)]
+            return []
+
+        mid = len(indices) // 2
+        left_indices = indices[:mid]
+        right_indices = indices[mid:]
+
+        # Test the pooled communities on left and right
+        left_start = sum(communities[:left_indices[0]])
+        left_end = left_start + sum(communities[left_indices[0]:left_indices[-1] + 1])
+        right_start = sum(communities[:right_indices[0]])
+        right_end = right_start + sum(communities[right_indices[0]:right_indices[-1] + 1])
+
+        infected_communities = []
+        if np.any(s[left_start:left_end]):
+            num_tests += 1
+            infected_communities += search_communities(left_indices)
+        if np.any(s[right_start:right_end]):
+            num_tests += 1
+            infected_communities += search_communities(right_indices)
+
+        return infected_communities
+
+    
+    # Start the recursive binary search
+    infected_communities = search_communities(community_indices)
+    
+    # Apply Qtesting2 to each detected infected community
+    for start, end in infected_communities:
+        community_s = s[start:end]
+        community_tests, community_stages = Qtesting2(community_s)
+        num_tests += community_tests
+        stages = max(stages, community_stages)
     ###################################################
 
 
