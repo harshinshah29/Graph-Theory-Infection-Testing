@@ -107,7 +107,6 @@ def Qtesting1(s):
     s(np.array): binary string of infection status
     '''
     import math
-    # Helper function to perform recursive calculations
     def helper(s, stage=0):
         total = len(s)
         if total == 1:
@@ -145,7 +144,6 @@ def Qtesting1(s):
 
         return num_tests, stage  # Return the total number of tests including this level and current stage
 
-    # Start the recursion with stage 0
     total_tests, max_stages = helper(s, 0)
     return total_tests, max_stages
     
@@ -227,9 +225,9 @@ def Qtesting2(s):
                     max_stage += subgroup_stage
                 return num_tests + test_count, max_stage
 
-        return num_tests, stage  # Return the total number of tests including this level and current stage
+        return num_tests, stage  
 
-    # Start the recursion with stage 0
+    
     total_tests, max_stages = helper2(s, 0)
     return total_tests, max_stages
 
